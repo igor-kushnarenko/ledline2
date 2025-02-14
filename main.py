@@ -1,14 +1,33 @@
 import sys
 import sqlite3
+from datetime import datetime, timedelta
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QListWidget, QPushButton,
     QVBoxLayout, QHBoxLayout, QInputDialog, QListWidgetItem, QTabWidget,
-    QColorDialog, QFontComboBox, QComboBox, QSpinBox, QFormLayout, QLabel
+    QColorDialog, QFontComboBox, QComboBox, QSpinBox, QFormLayout
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QPainter, QColor, QFont
 
-# Класс для работы с базой данных SQLite
+def generate_welcome_message():
+    """
+    Генерирует приветственное сообщение вида:
+    "Рады приветствовать Вас в отеле Довиль! Сегодня <день недели>, <число> <месяц>"
+    с корректным склонением названия месяца.
+    """
+    weekdays = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    months = {
+        1: "января", 2: "февраля", 3: "марта", 4: "апреля",
+        5: "мая", 6: "июня", 7: "июля", 8: "августа",
+        9: "сентября", 10: "октября", 11: "ноября", 12: "декабря"
+    }
+    now = datetime.now()
+    weekday = weekdays[now.weekday()]
+    day = now.day
+    month = months[now.month]
+    return f"Рады приветствовать Вас в отеле Довиль! Сегодня {weekday}, {day} {month}"
+
+# Класс для работы с базой данных
 class DatabaseManager:
     def __init__(self):
         self.conn = sqlite3.connect("marquee.db")
@@ -35,7 +54,6 @@ class DatabaseManager:
             )
         ''')
         self.conn.commit()
-        # Инициализируем настройки по умолчанию, если их ещё нет
         defaults = {
             "bg_color": "black",
             "text_color": "white",
@@ -89,7 +107,6 @@ class DatabaseManager:
             cursor.execute("UPDATE marquee_lines SET position = ? WHERE id = ?", (pos, line_id))
         self.conn.commit()
 
-    # Методы для сохранения и получения настроек
     def set_setting(self, key, value):
         cursor = self.conn.cursor()
         cursor.execute('''
@@ -106,20 +123,19 @@ class DatabaseManager:
             return row[0]
         return default
 
-# Окно для бегущей строки с непрерывным повтором текста
+# Окно бегущей строки
 class MarqueeWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
-        self.text = ""       # Текст бегущей строки
-        self.offset = 0      # Текущее смещение для анимации
+        self.text = ""       # Текст для прокрутки
+        self.offset = 0      # Смещение для анимации
         self.speed = 2       # Скорость прокрутки (пикселей за тик)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_position)
-        self.timer.start(30)  # Интервал обновления (30 мс)
+        self.timer.start(30)  # 30 мс интервал обновления
 
     def initUI(self):
-        # Определяем экран (если есть второй дисплей, выбираем его)
         screens = QApplication.screens()
         screen = screens[1] if len(screens) > 1 else screens[0]
         geometry = screen.geometry()
@@ -127,7 +143,6 @@ class MarqueeWindow(QWidget):
         self.screen_height = geometry.height()
         self.setGeometry(geometry.x(), geometry.y(), self.screen_width, int(self.screen_height * 0.1))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        # Настройки по умолчанию (будут перезаписаны при загрузке из БД)
         self.bg_color = QColor("black")
         self.text_color = QColor("white")
         self.font = QFont("Arial", 20)
@@ -167,7 +182,7 @@ class MarqueeWindow(QWidget):
             self.move(event.globalPos() - self.dragPos)
             event.accept()
 
-# Окно управления бегущей строкой с вкладками: строки и настройки
+# Окно управления с вкладками "Строки" и "Настройки"
 class ControlWindow(QMainWindow):
     def __init__(self, db_manager, marquee_window):
         super().__init__()
@@ -175,6 +190,10 @@ class ControlWindow(QMainWindow):
         self.marquee_window = marquee_window
         self.initUI()
         self.load_lines()
+        # Обновляем приветственную строку при старте
+        self.update_welcome_message()
+        # Запускаем таймер для обновления ровно в полночь
+        self.schedule_midnight_update()
 
     def initUI(self):
         self.setWindowTitle("Управление бегущей строкой")
@@ -185,7 +204,7 @@ class ControlWindow(QMainWindow):
         self.tabs = QTabWidget()
         main_layout.addWidget(self.tabs)
 
-        # Вкладка для строк
+        # Вкладка "Строки"
         self.text_tab = QWidget()
         text_layout = QVBoxLayout(self.text_tab)
         self.list_widget = QListWidget()
@@ -211,7 +230,7 @@ class ControlWindow(QMainWindow):
         self.list_widget.model().rowsMoved.connect(self.on_rows_moved)
         self.tabs.addTab(self.text_tab, "Строки")
 
-        # Вкладка для настроек
+        # Вкладка "Настройки"
         self.custom_tab = QWidget()
         custom_layout = QFormLayout(self.custom_tab)
         self.btn_bg_color = QPushButton("Выбрать цвет")
@@ -246,8 +265,9 @@ class ControlWindow(QMainWindow):
         self.update_marquee()
 
     def update_marquee(self):
-        lines = [self.list_widget.item(i).text() for i in range(self.list_widget.count())]
-        text = " ".join(lines)
+        # Объединяем строки (все строки, включая приветственную)
+        texts = [self.list_widget.item(i).text() for i in range(self.list_widget.count())]
+        text = "     ".join(texts)
         self.marquee_window.set_text(text)
 
     def add_line(self):
@@ -260,6 +280,9 @@ class ControlWindow(QMainWindow):
             self.update_marquee()
 
     def edit_line(self):
+        # Не разрешаем редактировать первую (приветственную) строку
+        if self.list_widget.currentRow() == 0:
+            return
         item = self.list_widget.currentItem()
         if item:
             current_text = item.text()
@@ -271,6 +294,9 @@ class ControlWindow(QMainWindow):
                 self.update_marquee()
 
     def delete_line(self):
+        # Не разрешаем удалять первую (приветственную) строку
+        if self.list_widget.currentRow() == 0:
+            return
         row = self.list_widget.currentRow()
         if row >= 0:
             item = self.list_widget.takeItem(row)
@@ -279,20 +305,23 @@ class ControlWindow(QMainWindow):
             self.update_marquee()
 
     def move_up(self):
+        # Не разрешаем перемещать первую строку
         row = self.list_widget.currentRow()
-        if row > 0:
-            item = self.list_widget.takeItem(row)
-            self.list_widget.insertItem(row - 1, item)
-            self.list_widget.setCurrentRow(row - 1)
-            self.save_order()
+        if row <= 0:
+            return
+        item = self.list_widget.takeItem(row)
+        self.list_widget.insertItem(row - 1, item)
+        self.list_widget.setCurrentRow(row - 1)
+        self.save_order()
 
     def move_down(self):
         row = self.list_widget.currentRow()
-        if row < self.list_widget.count() - 1:
-            item = self.list_widget.takeItem(row)
-            self.list_widget.insertItem(row + 1, item)
-            self.list_widget.setCurrentRow(row + 1)
-            self.save_order()
+        if row < 1 or row >= self.list_widget.count() - 1:
+            return
+        item = self.list_widget.takeItem(row)
+        self.list_widget.insertItem(row + 1, item)
+        self.list_widget.setCurrentRow(row + 1)
+        self.save_order()
 
     def on_rows_moved(self, parent, start, end, destination, row):
         self.save_order()
@@ -306,7 +335,7 @@ class ControlWindow(QMainWindow):
         self.db_manager.reorder_lines(id_list)
         self.update_marquee()
 
-    # Методы для настроек и сохранения их в БД
+    # Методы настроек (цвет, шрифт, скорость)
     def choose_bg_color(self):
         color = QColorDialog.getColor(initial=self.marquee_window.bg_color, title="Выберите цвет фона")
         if color.isValid():
@@ -343,11 +372,44 @@ class ControlWindow(QMainWindow):
         self.marquee_window.speed = speed
         self.db_manager.set_setting("speed", speed)
 
+    # --- Методы для работы с приветственной строкой ---
+    def update_welcome_message(self):
+        """
+        Обновляет (или добавляет, если отсутствует) первую строку как приветствие.
+        """
+        msg = generate_welcome_message()
+        if self.list_widget.count() == 0:
+            # Если таблица пуста, добавляем строку
+            line_id = self.db_manager.add_line(msg)
+            item = QListWidgetItem(msg)
+            item.setData(Qt.UserRole, line_id)
+            self.list_widget.insertItem(0, item)
+        else:
+            # Всегда обновляем первую строку
+            first_item = self.list_widget.item(0)
+            first_item.setText(msg)
+            self.db_manager.update_line(first_item.data(Qt.UserRole), msg)
+        self.update_marquee()
+
+    def schedule_midnight_update(self):
+        """
+        Вычисляет время до полуночи и устанавливает однократный таймер.
+        После обновления, планирует следующий запуск.
+        """
+        now = datetime.now()
+        tomorrow = datetime.combine(now.date() + timedelta(days=1), datetime.min.time())
+        ms_until_midnight = int((tomorrow - now).total_seconds() * 1000)
+        QTimer.singleShot(ms_until_midnight, self.midnight_update)
+
+    def midnight_update(self):
+        self.update_welcome_message()
+        self.schedule_midnight_update()
+
 def main():
     app = QApplication(sys.argv)
     db_manager = DatabaseManager()
     marquee_window = MarqueeWindow()
-    # Загрузка настроек из БД
+    # Загрузка сохранённых настроек
     bg = db_manager.get_setting("bg_color", "black")
     marquee_window.bg_color = QColor(bg)
     text_color = db_manager.get_setting("text_color", "white")
