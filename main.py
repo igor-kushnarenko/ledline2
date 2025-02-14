@@ -9,11 +9,13 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QPainter, QColor, QFont
 
+
 def generate_welcome_message():
     """
     Генерирует приветственное сообщение вида:
-    "Рады приветствовать Вас в отеле Довиль! Сегодня <день недели>, <число> <месяц>"
-    с корректным склонением названия месяца.
+    "Рады приветствовать Вас в отеле Довиль! Сегодня <день недели>, <число> <месяц>.
+     Температура воздуха от <temp_min>°C до <temp_max>°C, <описание погоды>."
+    Описание погоды переводится с английского.
     """
     weekdays = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
     months = {
@@ -25,9 +27,45 @@ def generate_welcome_message():
     weekday = weekdays[now.weekday()]
     day = now.day
     month = months[now.month]
-    return f"Рады приветствовать Вас в отеле Довиль! Сегодня {weekday}, {day} {month} |"
+    greeting = f"Рады приветствовать Вас в отеле Довиль! Сегодня {weekday}, {day} {month}. |"
 
-# Класс для работы с базой данных
+    # Получение информации о погоде
+    try:
+        from pyowm import OWM
+        API_KEY = "59ff4e66ae7a38fcb9a7a637165a4172"  # Замените на свой API ключ
+        owm = OWM(API_KEY)
+        mgr = owm.weather_manager()
+        observation = mgr.weather_at_place("Anapa, RU")
+        w = observation.weather
+        temp_data = w.temperature("celsius")
+        temp_min = temp_data.get("temp_min")
+        temp_max = temp_data.get("temp_max")
+        detailed_status = w.detailed_status  # Например, "clear sky"
+        weather_map = {
+            "clear sky": "ясно",
+            "few clouds": "малооблачно",
+            "scattered clouds": "рассеянные облака",
+            "broken clouds": "облачно",
+            "overcast clouds": "пасмурно",
+            "shower rain": "ливень",
+            "rain": "дождь",
+            "thunderstorm": "гроза",
+            "snow": "снег",
+            "mist": "туман"
+        }
+        status_ru = weather_map.get(detailed_status.lower(), detailed_status)
+        if temp_min is not None and temp_max is not None:
+            weather_info = f" Температура воздуха от {temp_min:.0f}°C до {temp_max:.0f}°C, {status_ru}."
+            print(weather_info)
+        else:
+            weather_info = ""
+    except Exception as e:
+        weather_info = ""
+        print(e)
+    return greeting + weather_info
+
+
+# Класс для работы с базой данных SQLite
 class DatabaseManager:
     def __init__(self):
         self.conn = sqlite3.connect("marquee.db")
@@ -123,14 +161,15 @@ class DatabaseManager:
             return row[0]
         return default
 
-# Окно бегущей строки
+
+# Окно для бегущей строки с непрерывным повтором текста
 class MarqueeWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
-        self.text = ""       # Текст для прокрутки
-        self.offset = 0      # Смещение для анимации
-        self.speed = 2       # Скорость прокрутки (пикселей за тик)
+        self.text = ""  # Текст для прокрутки
+        self.offset = 0  # Текущее смещение для анимации
+        self.speed = 2  # Скорость прокрутки (пикселей за тик)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_position)
         self.timer.start(30)  # 30 мс интервал обновления
@@ -182,7 +221,8 @@ class MarqueeWindow(QWidget):
             self.move(event.globalPos() - self.dragPos)
             event.accept()
 
-# Окно управления с вкладками "Строки" и "Настройки"
+
+# Окно управления бегущей строкой с вкладками "Строки" и "Настройки"
 class ControlWindow(QMainWindow):
     def __init__(self, db_manager, marquee_window):
         super().__init__()
@@ -190,9 +230,7 @@ class ControlWindow(QMainWindow):
         self.marquee_window = marquee_window
         self.initUI()
         self.load_lines()
-        # Обновляем приветственную строку при старте
         self.update_welcome_message()
-        # Запускаем таймер для обновления ровно в полночь
         self.schedule_midnight_update()
 
     def initUI(self):
@@ -265,7 +303,6 @@ class ControlWindow(QMainWindow):
         self.update_marquee()
 
     def update_marquee(self):
-        # Объединяем строки (все строки, включая приветственную)
         texts = [self.list_widget.item(i).text() for i in range(self.list_widget.count())]
         text = "     ".join(texts)
         self.marquee_window.set_text(text)
@@ -280,7 +317,6 @@ class ControlWindow(QMainWindow):
             self.update_marquee()
 
     def edit_line(self):
-        # Не разрешаем редактировать первую (приветственную) строку
         if self.list_widget.currentRow() == 0:
             return
         item = self.list_widget.currentItem()
@@ -294,7 +330,6 @@ class ControlWindow(QMainWindow):
                 self.update_marquee()
 
     def delete_line(self):
-        # Не разрешаем удалять первую (приветственную) строку
         if self.list_widget.currentRow() == 0:
             return
         row = self.list_widget.currentRow()
@@ -305,7 +340,6 @@ class ControlWindow(QMainWindow):
             self.update_marquee()
 
     def move_up(self):
-        # Не разрешаем перемещать первую строку
         row = self.list_widget.currentRow()
         if row <= 0:
             return
@@ -335,7 +369,7 @@ class ControlWindow(QMainWindow):
         self.db_manager.reorder_lines(id_list)
         self.update_marquee()
 
-    # Методы настроек (цвет, шрифт, скорость)
+    # Методы для настроек
     def choose_bg_color(self):
         color = QColorDialog.getColor(initial=self.marquee_window.bg_color, title="Выберите цвет фона")
         if color.isValid():
@@ -372,30 +406,21 @@ class ControlWindow(QMainWindow):
         self.marquee_window.speed = speed
         self.db_manager.set_setting("speed", speed)
 
-    # --- Методы для работы с приветственной строкой ---
+    # Методы для приветственной строки
     def update_welcome_message(self):
-        """
-        Обновляет (или добавляет, если отсутствует) первую строку как приветствие.
-        """
         msg = generate_welcome_message()
         if self.list_widget.count() == 0:
-            # Если таблица пуста, добавляем строку
             line_id = self.db_manager.add_line(msg)
             item = QListWidgetItem(msg)
             item.setData(Qt.UserRole, line_id)
             self.list_widget.insertItem(0, item)
         else:
-            # Всегда обновляем первую строку
             first_item = self.list_widget.item(0)
             first_item.setText(msg)
             self.db_manager.update_line(first_item.data(Qt.UserRole), msg)
         self.update_marquee()
 
     def schedule_midnight_update(self):
-        """
-        Вычисляет время до полуночи и устанавливает однократный таймер.
-        После обновления, планирует следующий запуск.
-        """
         now = datetime.now()
         tomorrow = datetime.combine(now.date() + timedelta(days=1), datetime.min.time())
         ms_until_midnight = int((tomorrow - now).total_seconds() * 1000)
@@ -405,11 +430,12 @@ class ControlWindow(QMainWindow):
         self.update_welcome_message()
         self.schedule_midnight_update()
 
+
 def main():
     app = QApplication(sys.argv)
     db_manager = DatabaseManager()
     marquee_window = MarqueeWindow()
-    # Загрузка сохранённых настроек
+    # Загрузка настроек из БД
     bg = db_manager.get_setting("bg_color", "black")
     marquee_window.bg_color = QColor(bg)
     text_color = db_manager.get_setting("text_color", "white")
@@ -422,6 +448,7 @@ def main():
     control_window = ControlWindow(db_manager, marquee_window)
     control_window.show()
     sys.exit(app.exec_())
+
 
 if __name__ == "__main__":
     main()
