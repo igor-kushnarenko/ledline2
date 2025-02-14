@@ -25,7 +25,7 @@ def generate_welcome_message():
     weekday = weekdays[now.weekday()]
     day = now.day
     month = months[now.month]
-    return f"Рады приветствовать Вас в отеле Довиль! Сегодня {weekday}, {day} {month}"
+    return f"Рады приветствовать Вас в отеле Довиль! Сегодня {weekday}, {day} {month} |"
 
 # Класс для работы с базой данных
 class DatabaseManager:
