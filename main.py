@@ -32,7 +32,7 @@ def generate_welcome_message():
     # Получение информации о погоде
     try:
         from pyowm import OWM
-        API_KEY = "59ff4e66ae7a38fcb9a7a637165a4172"  # Замените на свой API ключ
+        from pyowm_key import API_KEY
         owm = OWM(API_KEY)
         mgr = owm.weather_manager()
         observation = mgr.weather_at_place("Anapa, RU")
