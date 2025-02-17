@@ -5,6 +5,7 @@ class DatabaseManager:
         self.conn = sqlite3.connect("marquee.db")
         self.create_lines_table()
         self.create_settings_table()
+        self.create_schedule_table()  # Новый метод для создания таблицы расписания
 
     def create_lines_table(self):
         cursor = self.conn.cursor()
@@ -36,6 +37,42 @@ class DatabaseManager:
         for key, val in defaults.items():
             if self.get_setting(key) is None:
                 self.set_setting(key, val)
+
+    def create_schedule_table(self):
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS schedule (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                day INTEGER,  -- 1 to 14 for the 2-week cycle
+                event_name TEXT,
+                event_time TEXT,
+                event_type TEXT  -- 'adult', 'child', или 'other'
+            )
+        ''')
+        self.conn.commit()
+
+    def add_event(self, day, event_name, event_time, event_type):
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT INTO schedule (day, event_name, event_time, event_type) VALUES (?, ?, ?, ?)",
+                       (day, event_name, event_time, event_type))
+        self.conn.commit()
+
+    def get_events_for_day(self, day):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT event_name, event_time, id FROM schedule WHERE day = ? ORDER BY event_time",
+                       (day,))
+        return cursor.fetchall()
+
+    def update_event(self, event_id, event_name, event_time):
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE schedule SET event_name = ?, event_time = ? WHERE id = ?",
+                       (event_name, event_time, event_id))
+        self.conn.commit()
+
+    def delete_event(self, event_id):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM schedule WHERE id = ?", (event_id,))
+        self.conn.commit()
 
     def get_lines(self):
         cursor = self.conn.cursor()
