@@ -28,7 +28,6 @@ def generate_welcome_message():
         observation = mgr.weather_at_place("Anapa, RU")
         w = observation.weather
         temp_data = w.temperature("celsius")
-        temp_min = temp_data.get("temp_min")
         temp_max = temp_data.get("temp_max")
         detailed_status = w.detailed_status  # Например, "clear sky"
         weather_map = {
@@ -45,12 +44,10 @@ def generate_welcome_message():
             "light snow": "небольшой снег",
         }
         status_ru = weather_map.get(detailed_status.lower(), detailed_status)
-        if temp_min is not None and temp_max is not None:
-            weather_info = f" Температура воздуха от {temp_min:.0f}°C до {temp_max:.0f}°C, {status_ru}."
-            print(weather_info)
+        if temp_max is not None:
+            weather_info = f" Температура воздуха {temp_max:.0f}°C, {status_ru}. "
         else:
             weather_info = ""
     except Exception as e:
         weather_info = ""
-        print(e)
     return greeting + weather_info
