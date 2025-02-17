@@ -7,11 +7,11 @@ class MarqueeWindow(QWidget):
         super().__init__()
         self.initUI()
         self.text = ""  # Текст для прокрутки
-        self.offset = 0  # Текущее смещение для анимации
-        self.speed = 2  # Скорость прокрутки (пикселей за тик)
+        self.offset = 5  # Текущее смещение для анимации
+        self.speed = 5  # Скорость прокрутки (пикселей за тик)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_position)
-        self.timer.start(10)  # 30 мс интервал обновления
+        self.timer.start(30)  # 30 мс интервал обновления
 
     def initUI(self):
         screens = QApplication.screens()

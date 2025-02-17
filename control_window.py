@@ -192,6 +192,7 @@ class ControlWindow(QMainWindow):
     # Методы для приветственной строки
     def update_welcome_message(self):
         msg = generate_welcome_message()
+        print(msg)
         if self.list_widget.count() == 0:
             line_id = self.db_manager.add_line(msg)
             item = QListWidgetItem(msg)
