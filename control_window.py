@@ -109,17 +109,30 @@ class ControlWindow(QMainWindow):
         self.load_schedule()
 
     def load_schedule(self):
-        self.table.clearContents()
+        self.table.setRowCount(0)  # Очищаем таблицу перед загрузкой новых данных
+        row = 0
         for week in range(1, 3):
             for day in range(1, 8):
                 events = self.db_manager.get_events_for_week_day(week, day)
-                for row, (event_name, event_time, location, event_id) in enumerate(events, start=(week - 1) * 7 + day - 1):
+                if events:  # Если есть события для этого дня
+                    # Добавляем заголовок дня
+                    self.table.insertRow(row)
                     self.table.setItem(row, 0, QTableWidgetItem(f"Неделя {week}"))
                     self.table.setItem(row, 1, QTableWidgetItem(f"День {day}"))
-                    self.table.setItem(row, 2, QTableWidgetItem(event_name))
-                    self.table.setItem(row, 3, QTableWidgetItem(event_time))
-                    self.table.setItem(row, 4, QTableWidgetItem(location))
-                    self.table.item(row, 2).setData(Qt.UserRole, event_id)  # Сохраняем ID события
+                    row += 1
+                    # Добавляем события
+                    for event_name, event_time, location, event_id in sorted(events, key=lambda x: x[1]):
+                        self.table.insertRow(row)
+                        self.table.setItem(row, 2, QTableWidgetItem(event_name))
+                        self.table.setItem(row, 3, QTableWidgetItem(event_time))
+                        self.table.setItem(row, 4, QTableWidgetItem(location))
+                        self.table.item(row, 2).setData(Qt.UserRole, event_id)  # Сохраняем ID события
+                        row += 1
+                else:  # Если нет событий, добавляем пустую строку
+                    self.table.insertRow(row)
+                    self.table.setItem(row, 0, QTableWidgetItem(f"Неделя {week}"))
+                    self.table.setItem(row, 1, QTableWidgetItem(f"День {day}"))
+                    row += 1
 
     def add_event(self):
         week, ok = QInputDialog.getItem(self, "Неделя", "Выберите неделю:", ["1", "2"], 0, False)
@@ -186,7 +199,7 @@ class ControlWindow(QMainWindow):
     def filter_current_events(self, events):
         now = datetime.now()
         current_time = now.time()
-        return [f"{event[0]} - {event[1]}, {event[2]} " for event in events if datetime.strptime(event[1], "%H:%M").time() >= current_time]
+        return [f"{event[0]} - {event[1]}, {event[2]} | " for event in events if datetime.strptime(event[1], "%H:%M").time() >= current_time]
 
 
     def update_schedule_message_in_marquee(self, message):
