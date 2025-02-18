@@ -111,6 +111,8 @@ class ControlWindow(QMainWindow):
     def load_schedule(self):
         self.table.setRowCount(0)  # Очищаем таблицу перед загрузкой новых данных
         row = 0
+        days_of_week = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+
         for week in range(1, 3):
             for day in range(1, 8):
                 events = self.db_manager.get_events_for_week_day(week, day)
@@ -118,7 +120,7 @@ class ControlWindow(QMainWindow):
                     # Добавляем заголовок дня
                     self.table.insertRow(row)
                     self.table.setItem(row, 0, QTableWidgetItem(f"Неделя {week}"))
-                    self.table.setItem(row, 1, QTableWidgetItem(f"День {day}"))
+                    self.table.setItem(row, 1, QTableWidgetItem(days_of_week[day - 1]))
                     row += 1
                     # Добавляем события
                     for event_name, event_time, location, event_id in sorted(events, key=lambda x: x[1]):
@@ -131,7 +133,7 @@ class ControlWindow(QMainWindow):
                 else:  # Если нет событий, добавляем пустую строку
                     self.table.insertRow(row)
                     self.table.setItem(row, 0, QTableWidgetItem(f"Неделя {week}"))
-                    self.table.setItem(row, 1, QTableWidgetItem(f"День {day}"))
+                    self.table.setItem(row, 1, QTableWidgetItem(days_of_week[day - 1]))
                     row += 1
 
     def add_event(self):
