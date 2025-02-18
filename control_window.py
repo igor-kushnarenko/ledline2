@@ -194,7 +194,7 @@ class ControlWindow(QMainWindow):
         current_week = 1 if today.weekday() < 7 else 2  # Определяем текущую неделю в 2-недельном цикле
         current_day = today.weekday() + 1  # День недели от 1 до 7
         events = self.db_manager.get_events_for_week_day(current_week, current_day)
-        message = "Сегодня в программе: "
+        message = "🎉 Сегодня в программе: "
         formatted_events = self.filter_current_events(events)
         message += " ".join(formatted_events)
         self.update_schedule_message_in_marquee(message)
