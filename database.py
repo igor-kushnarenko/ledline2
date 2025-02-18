@@ -46,27 +46,28 @@ class DatabaseManager:
                 week INTEGER,   -- 1 или 2 для номера недели
                 day INTEGER,    -- 1 to 7 для дня недели
                 event_name TEXT,
-                event_time TEXT -- формата HH:MM
+                event_time TEXT, -- формата HH:MM
+                location TEXT    -- место проведения
             )
         ''')
         self.conn.commit()
 
-    def add_event(self, week, day, event_name, event_time):
+    def add_event(self, week, day, event_name, event_time, location):
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO schedule (week, day, event_name, event_time) VALUES (?, ?, ?, ?)",
-                       (week, day, event_name, event_time))
+        cursor.execute("INSERT INTO schedule (week, day, event_name, event_time, location) VALUES (?, ?, ?, ?, ?)",
+                       (week, day, event_name, event_time, location))
         self.conn.commit()
 
     def get_events_for_week_day(self, week, day):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT event_name, event_time, id FROM schedule WHERE week = ? AND day = ? ORDER BY event_time",
+        cursor.execute("SELECT event_name, event_time, location, id FROM schedule WHERE week = ? AND day = ? ORDER BY event_time",
                        (week, day))
         return cursor.fetchall()
 
-    def update_event(self, event_id, event_name, event_time):
+    def update_event(self, event_id, event_name, event_time, location):
         cursor = self.conn.cursor()
-        cursor.execute("UPDATE schedule SET event_name = ?, event_time = ? WHERE id = ?",
-                       (event_name, event_time, event_id))
+        cursor.execute("UPDATE schedule SET event_name = ?, event_time = ?, location = ? WHERE id = ?",
+                       (event_name, event_time, location, event_id))
         self.conn.commit()
 
     def delete_event(self, event_id):

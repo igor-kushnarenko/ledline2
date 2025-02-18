@@ -82,8 +82,9 @@ class ControlWindow(QMainWindow):
         # Вкладка "Расписание"
         self.schedule_tab = QWidget()
         schedule_layout = QVBoxLayout(self.schedule_tab)
-        self.table = QTableWidget(14, 3)  # Теперь 3 столбца без типа мероприятия
-        self.table.setHorizontalHeaderLabels(['Неделя', 'День', 'Мероприятие', 'Время'])
+
+        self.table = QTableWidget(14, 5)  # Теперь 4 столбца с добавлением места проведения
+        self.table.setHorizontalHeaderLabels(['Неделя', 'День', 'Мероприятие', 'Время', 'Место'])
         schedule_layout.addWidget(self.table)
 
         # Кнопки для работы с расписанием
@@ -112,11 +113,12 @@ class ControlWindow(QMainWindow):
         for week in range(1, 3):
             for day in range(1, 8):
                 events = self.db_manager.get_events_for_week_day(week, day)
-                for row, (event_name, event_time, event_id) in enumerate(events, start=(week - 1) * 7 + day - 1):
+                for row, (event_name, event_time, location, event_id) in enumerate(events, start=(week - 1) * 7 + day - 1):
                     self.table.setItem(row, 0, QTableWidgetItem(f"Неделя {week}"))
                     self.table.setItem(row, 1, QTableWidgetItem(f"День {day}"))
                     self.table.setItem(row, 2, QTableWidgetItem(event_name))
                     self.table.setItem(row, 3, QTableWidgetItem(event_time))
+                    self.table.setItem(row, 4, QTableWidgetItem(location))
                     self.table.item(row, 2).setData(Qt.UserRole, event_id)  # Сохраняем ID события
 
     def add_event(self):
@@ -137,7 +139,10 @@ class ControlWindow(QMainWindow):
         if not ok:
             return
         event_time = f"{hour}:{minute}"
-        self.db_manager.add_event(int(week), day, event_name, event_time)
+        location, ok = QInputDialog.getText(self, "Место", "Введите место проведения:")
+        if not ok:
+            return
+        self.db_manager.add_event(int(week), day, event_name, event_time, location)
         self.load_schedule()
 
     def edit_event(self):
@@ -153,7 +158,10 @@ class ControlWindow(QMainWindow):
         new_time, ok = QInputDialog.getText(self, "Редактировать время", "Новое время (формат: HH:MM):", text=self.table.item(current_row, 3).text())
         if not ok:
             return
-        self.db_manager.update_event(event_id, new_name, new_time)
+        new_location, ok = QInputDialog.getText(self, "Редактировать место", "Новое место проведения:", text=self.table.item(current_row, 4).text())
+        if not ok:
+            return
+        self.db_manager.update_event(event_id, new_name, new_time, new_location)
         self.load_schedule()
 
     def delete_event(self):
@@ -178,7 +186,7 @@ class ControlWindow(QMainWindow):
     def filter_current_events(self, events):
         now = datetime.now()
         current_time = now.time()
-        return [f"{event[0]} - {event[1]}. " for event in events if datetime.strptime(event[1], "%H:%M").time() >= current_time]
+        return [f"{event[0]} - {event[1]}, {event[2]} " for event in events if datetime.strptime(event[1], "%H:%M").time() >= current_time]
 
 
     def update_schedule_message_in_marquee(self, message):
