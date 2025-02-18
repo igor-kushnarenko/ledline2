@@ -21,7 +21,7 @@ class ControlWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("Управление бегущей строкой")
-        self.resize(500, 400)
+        self.resize(1000, 800)
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         main_layout = QVBoxLayout(main_widget)
@@ -119,7 +119,7 @@ class ControlWindow(QMainWindow):
                 if events:  # Если есть события для этого дня
                     # Добавляем заголовок дня
                     self.table.insertRow(row)
-                    self.table.setItem(row, 0, QTableWidgetItem(f"Неделя {week}"))
+                    self.table.setItem(row, 0, QTableWidgetItem(f"{week}"))
                     self.table.setItem(row, 1, QTableWidgetItem(days_of_week[day - 1]))
                     row += 1
                     # Добавляем события
@@ -132,7 +132,7 @@ class ControlWindow(QMainWindow):
                         row += 1
                 else:  # Если нет событий, добавляем пустую строку
                     self.table.insertRow(row)
-                    self.table.setItem(row, 0, QTableWidgetItem(f"Неделя {week}"))
+                    self.table.setItem(row, 0, QTableWidgetItem(f"{week}"))
                     self.table.setItem(row, 1, QTableWidgetItem(days_of_week[day - 1]))
                     row += 1
 
