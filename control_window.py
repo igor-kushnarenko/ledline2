@@ -196,7 +196,7 @@ class ControlWindow(QMainWindow):
         events = self.db_manager.get_events_for_week_day(current_week, current_day)
         message = "Сегодня в программе: "
         formatted_events = self.filter_current_events(events)
-        message += ", ".join(formatted_events)
+        message += " ".join(formatted_events)
         self.update_schedule_message_in_marquee(message)
 
     def filter_current_events(self, events):

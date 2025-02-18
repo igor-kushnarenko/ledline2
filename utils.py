@@ -17,7 +17,7 @@ def generate_welcome_message():
     weekday = weekdays[now.weekday()]
     day = now.day
     month = months[now.month]
-    greeting = f"Рады приветствовать Вас в отеле Довиль! Сегодня {weekday}, {day} {month} 🌤️"
+    greeting = f"❤️ Рады приветствовать Вас в отеле Довиль 🗓️ Сегодня {weekday}, {day} {month}. "
 
     # Получение информации о погоде
     try:
@@ -45,7 +45,7 @@ def generate_welcome_message():
         }
         status_ru = weather_map.get(detailed_status.lower(), detailed_status)
         if temp_max is not None:
-            weather_info = f" Температура воздуха {temp_max:.0f}°C, {status_ru}. "
+            weather_info = f"🌤️ Температура воздуха {temp_max:.0f}°C, {status_ru}. "
         else:
             weather_info = ""
     except Exception as e:
