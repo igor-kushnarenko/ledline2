@@ -43,24 +43,24 @@ class DatabaseManager:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS schedule (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                day INTEGER,  -- 1 to 14 for the 2-week cycle
+                week INTEGER,   -- 1 или 2 для номера недели
+                day INTEGER,    -- 1 to 7 для дня недели
                 event_name TEXT,
-                event_time TEXT,
-                event_type TEXT  -- 'adult', 'child', или 'other'
+                event_time TEXT -- формата HH:MM
             )
         ''')
         self.conn.commit()
 
-    def add_event(self, day, event_name, event_time, event_type):
+    def add_event(self, week, day, event_name, event_time):
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO schedule (day, event_name, event_time, event_type) VALUES (?, ?, ?, ?)",
-                       (day, event_name, event_time, event_type))
+        cursor.execute("INSERT INTO schedule (week, day, event_name, event_time) VALUES (?, ?, ?, ?)",
+                       (week, day, event_name, event_time))
         self.conn.commit()
 
-    def get_events_for_day(self, day):
+    def get_events_for_week_day(self, week, day):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT event_name, event_time, id FROM schedule WHERE day = ? ORDER BY event_time",
-                       (day,))
+        cursor.execute("SELECT event_name, event_time, id FROM schedule WHERE week = ? AND day = ? ORDER BY event_time",
+                       (week, day))
         return cursor.fetchall()
 
     def update_event(self, event_id, event_name, event_time):
@@ -73,6 +73,8 @@ class DatabaseManager:
         cursor = self.conn.cursor()
         cursor.execute("DELETE FROM schedule WHERE id = ?", (event_id,))
         self.conn.commit()
+
+    # остальные методы
 
     def get_lines(self):
         cursor = self.conn.cursor()
