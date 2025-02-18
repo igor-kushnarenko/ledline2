@@ -18,6 +18,7 @@ class ControlWindow(QMainWindow):
         self.update_welcome_message()
         self.schedule_midnight_update()
         self.setup_hourly_update()
+        self.apply_dark_theme()
 
     def initUI(self):
         self.setWindowTitle("Управление бегущей строкой")
@@ -337,6 +338,81 @@ class ControlWindow(QMainWindow):
     def change_speed(self, speed):
         self.marquee_window.speed = speed
         self.db_manager.set_setting("speed", speed)
+
+    def apply_dark_theme(self):
+        # Определяем стиль для тёмной темы
+        dark_stylesheet = """
+        QMainWindow {
+            background-color: #333333;
+        }
+        QWidget {
+            color: #ffffff;
+            background-color: #444444;
+        }
+        QPushButton {
+            background-color: #555555;
+            border: 1px solid #666666;
+            padding: 5px;
+            color: #ffffff;
+            border-radius: 5px; /* Скругление углов кнопок */
+        }
+        QPushButton:hover {
+            background-color: #666666;
+        }
+        QPushButton:pressed {
+            background-color: #777777;
+        }
+        QTabWidget::pane {
+            border: 1px solid #666666;
+            background-color: #333333;
+        }
+        QTabBar::tab {
+            background-color: #555555;
+            color: #ffffff;
+            border: 1px solid #666666;
+            padding: 5px;
+        }
+        QTabBar::tab:selected {
+            background-color: #444444;
+        }
+        QListWidget {
+            background-color: #333333;
+            border: 1px solid #666666;
+        }
+        QListWidget::item {
+            color: #ffffff;
+        }
+        QListWidget::item:selected {
+            background-color: #555555;
+        }
+        QTableWidget {
+            background-color: #333333;
+            color: #ffffff;
+            gridline-color: #666666;
+        }
+        QTableWidget::item {
+            background-color: #444444;
+        }
+        QTableWidget::item:selected {
+            background-color: #555555;
+        }
+        QComboBox, QSpinBox, QFontComboBox {
+            background-color: #444444;
+            color: #ffffff;
+            border: 1px solid #666666;
+        }
+        QHeaderView::section {
+            background-color: #555555; /* Фон заголовков таблицы */
+            color: #ffffff; /* Цвет текста заголовков */
+            border: 1px solid #666666;
+            padding: 4px;
+        }
+        """
+        # Применяем стиль к главному окну
+        self.setStyleSheet(dark_stylesheet)
+        # Убедимся, что заголовки таблицы видны
+        self.table.horizontalHeader().setStyleSheet("QHeaderView::section { background-color: #555555; color: #ffffff; }")
+
 
     # Методы для приветственной строки
     def update_welcome_message(self):
